@@ -11,17 +11,6 @@ free_caches() {
   echo "done."
 }
 
-benchmark_walk() {
-    SNAP="$1"
-    free_caches >&2
-
-    start=$(date +%s%N)
-    find "/snap/$SNAP/current/" -type f -print0 | xargs -0 md5sum >/dev/null
-    end=$(date +%s%N)
-
-    echo $(( (end - start)/1000000 ))
-}
-
 benchmark_startup() {
     SNAP="$1"
     APP="/snap/bin/$SNAP"
@@ -66,39 +55,27 @@ benchmark_startup() {
     echo "$TIME"
 }
 
-recompress() {
-    snap="$1"
-    comp="$2"
-    if [ "$comp" = "none" ]; then
-        set -- -noI -noD -noF
-    else
-        set -- -comp "$comp"
-    fi
-
-    mksquashfs "$snap-root" "$snap-$comp.snap" -noappend -no-fragments -all-root -no-xattrs "$@"
-}
-
 bench() {
-    SNAP="$1"
-    MODE="$2"
-    ITER="$3"
-    if [ "$MODE" != "try" ]; then
-        if [ "$MODE" != "xz" ]; then
-            if [ ! -e "$SNAP-$MODE.snap" ]; then
-                recompress_xz_args "$SNAP" "$MODE" >&2
-            fi
-        fi
-        sudo snap install --dangerous "$SNAP-$MODE.snap" >&2
-        SIZE=$( stat -Lc%s "$SNAP-${MODE}.snap" )
-    else
-        sudo snap try "$SNAP-root" >&2
-        SIZE=$( du -bs "$SNAP-root" | cut -f1 )
-    fi
+    # SNAP="$1"
+    # MODE="$2"
+    # ITER="$3"
+    # if [ "$MODE" != "try" ]; then
+    #     if [ "$MODE" != "xz" ]; then
+    #         if [ ! -e "$SNAP-$MODE.snap" ]; then
+    #             recompress "$SNAP" "$MODE" >&2
+    #         fi
+    #     fi
+    #     sudo snap install --dangerous "$SNAP-$MODE.snap" >&2
+    #     SIZE=$( stat -Lc%s "$SNAP-${MODE}.snap" )
+    # else
+    #     sudo snap try "$SNAP-root" >&2
+    #     SIZE=$( du -bs "$SNAP-root" | cut -f1 )
+    # fi
 
     # connect every interface declared
-    for iface in $(snap interfaces "$SNAP" 2>/dev/null | grep -P "^-" | awk '{print $2}'); 
-        do snap connect "$iface" >&2
-    done
+    # for iface in $(snap interfaces "$SNAP" 2>/dev/null | grep -P "^-" | awk '{print $2}'); 
+    #     do snap connect "$iface" >&2
+    # done
 
     START=$( benchmark_startup "$SNAP" )
     echo "$SNAP ($MODE): starting took ${START}ms" >&2
@@ -106,25 +83,22 @@ bench() {
     START2=$( benchmark_startup "$SNAP" )
     echo "$SNAP ($MODE): 2nd start took ${START2}ms" >&2
 
-    WALK=$( benchmark_walk "$SNAP" )
-    echo "$SNAP ($MODE): walk took ${WALK}ms" >&2
+    # sudo snap remove "$SNAP" >&2
 
-    sudo snap remove "$SNAP" >&2
-
-    echo "$ITER:$SNAP:$MODE:$SIZE:$START:$START2:$WALK"
+    echo "$ITER:$SNAP:$MODE:$SIZE:$WALK:$WALK2"
 }
 
-prepare() {
-    SNAP="$1"
-    if [ ! -d "$SNAP-root" ]; then
-        snap download "$SNAP"
-        sudo unsquashfs -d "$SNAP-root" "$SNAP"_*.snap
-        ln -sfv "$SNAP"_*.snap "$SNAP-xz.snap"
-    fi
-    if snap list "$SNAP" >/dev/null 2>&1; then
-        sudo snap remove "$SNAP"
-    fi
-}
+# prepare() {
+#     SNAP="$1"
+#     if [ ! -d "$SNAP-root" ]; then
+#         snap download "$SNAP"
+#         sudo unsquashfs -d "$SNAP-root" "$SNAP"_*.snap
+#         ln -sfv "$SNAP"_*.snap "$SNAP-xz.snap"
+#     fi
+#     if snap list "$SNAP" >/dev/null 2>&1; then
+#         sudo snap remove "$SNAP"
+#     fi
+# }
 
 if [ "$(id -u)" -eq 0 ]; then
     echo "ERROR! Must be a regular user."
@@ -141,13 +115,12 @@ fi
 
 for ITER in $(seq 1 4); do
     for SNAP in chromium; do
-        echo "#### $SNAP"
-        prepare "$SNAP"
+        echo "#### $SNAP ($ITER)"
 
-        for MODE in try xz "8192" "4096"; do
-            echo "  ## $MODE"
+        # for MODE in try xz none gzip lzo zstd; do
+        #     echo "  ## $MODE"
             bench "$SNAP" "$MODE" "$ITER" | tee -a log.txt
-        done
+        # done
     done
 done
 
