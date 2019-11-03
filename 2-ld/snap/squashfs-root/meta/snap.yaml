@@ -1,0 +1,99 @@
+name: chromium
+version: 78.0.3904.70
+summary: Chromium web browser, open-source version of Chrome
+description: |
+  An open-source browser project that aims to build a safer, faster, and more
+  stable way for all Internet users to experience the web.
+base: core18
+architectures:
+  - amd64
+confinement: strict
+grade: stable
+layout:
+  /usr/lib/man-db:
+    bind: $SNAP/usr/lib/man-db
+  /etc/ld.so.cache:
+    bind-file: $SNAP_DATA/etc/ld.so.cache
+hooks:
+  install:
+    command-chain:
+      - snap/command-chain/snapcraft-runner
+      - bin/desktop-launch
+plugs:
+  browser-sandbox:
+    allow-sandbox: true
+    interface: browser-support
+  chromium-config:
+    interface: personal-files
+    read:
+      - $HOME/.config/chromium
+      - $HOME/.chromium-browser.init
+  gtk-3-themes:
+    default-provider: gtk-common-themes
+    interface: content
+    target: $SNAP/data-dir/themes
+  icon-themes:
+    default-provider: gtk-common-themes
+    interface: content
+    target: $SNAP/data-dir/icons
+  sound-themes:
+    default-provider: gtk-common-themes
+    interface: content
+    target: $SNAP/data-dir/sounds
+apps:
+  chromedriver:
+    command: snap/command-chain/snapcraft-runner $SNAP/command-chromedriver.wrapper
+    plugs:
+      - network-bind
+      - audio-playback
+      - audio-record
+      - camera
+      - cups-control
+      - desktop
+      - gsettings
+      - home
+      - mount-observe
+      - network
+      - network-manager
+      - opengl
+      - password-manager-service
+      - pulseaudio
+      - removable-media
+      - screen-inhibit-control
+      - u2f-devices
+      - unity7
+      - upower-observe
+      - x11
+    slots:
+      - mpris
+  chromium:
+    command: bin/chromium.launcher
+    command-chain:
+      - bin/time-save.sh
+      - snap/command-chain/snapcraft-runner
+      - bin/desktop-launch
+    environment:
+      CHROME_DESKTOP: chromium.desktop
+      DISABLE_WAYLAND: 1
+    plugs:
+      - audio-playback
+      - audio-record
+      - camera
+      - cups-control
+      - desktop
+      - gsettings
+      - home
+      - mount-observe
+      - network
+      - network-manager
+      - opengl
+      - password-manager-service
+      - pulseaudio
+      - removable-media
+      - screen-inhibit-control
+      - u2f-devices
+      - unity7
+      - upower-observe
+      - x11
+    slots:
+      - mpris
