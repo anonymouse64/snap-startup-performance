@@ -13,47 +13,10 @@ cp /etc/ld.so.conf "$SNAP_DATA/etc/ld.so.conf"
 
 # delete empty entries in the LD_LIBRARY_PATH
 # i.e. change "/a/b/c:/1/2/3::/other" into "/a/b/c:/1/2/3:/other"
-LD_LIBRARY_PATH=$(echo "$LD_LIBRARY_PATH" | sed -e "s/:://")
+LD_LIBRARY_PATH=$(echo "$LD_LIBRARY_PATH" | sed -e "s/::/:/")
 
 # run ldconfig on our LD_LIBRARY_PATH lib dirs
 IFS=':' read -ra PATHS <<< "$LD_LIBRARY_PATH"
 mkdir -p "$SNAP_DATA/fake-etc"
 ldconfig -C "$SNAP_DATA/fake-etc/ld.so.cache" -c "$SNAP_DATA/etc/ld.so.conf" "${PATHS[@]}"
 cp "$SNAP_DATA/fake-etc/ld.so.cache" "$SNAP_DATA/etc/ld.so.cache"
-
-exit 0
-
-# old stuff
-
-# copying the conf dir from real /etc into $SNAP_DATA
-mkdir -p "$SNAP_DATA/etc/ld.so.conf.d"
-cp -r /etc/ld.so.conf.d/* "$SNAP_DATA/etc/ld.so.conf.d"
-# sed /etc/ld.so.conf \
-#     -e "s@include /etc/ld.so.conf.d/*.conf@include etc/ld.so.conf.d/*.conf@" \
-#     > "$SNAP_DATA/etc/ld.so.conf"
-
-# delete empty entries in the LD_LIBRARY_PATH
-# i.e. change "/a/b/c:/1/2/3::/other" into "/a/b/c:/1/2/3:/other"
-
-LD_LIBRARY_PATH=$(echo "$LD_LIBRARY_PATH" | sed -e "s/:://")
-
-# run ldconfig on our LD_LIBRARY_PATH lib dirs
-IFS=':' read -ra PATHS <<< "$LD_LIBRARY_PATH"
-ldconfig -C "$SNAP_DATA/etc/ld.so.cache" -c "$SNAP_DATA/etc/ld.so.conf" "${PATHS[@]}"
-# for libdir in "${PATHS[@]}"; do
-#     if [ -z "$libdir" ]; then
-#         continue
-#     fi
-#     echo "$libdir"
-#     # note that we have to write the updates to $SNAP_DATA, even though this is 
-#     # bind mounted to /etc/ld.so.cache because otherwise ldconfig can't create 
-#     # it's temp file
-#     # also note that we _really_ _really_ need the "/" at the end of libdir here
-#     # because otherwise ldconfig doesn't properly read all the libs from the
-#     # directory because ... that would be ... too easy
-#     ldconfig -C "$SNAP_DATA/etc/ld.so.cache" -c "$SNAP_DATA/etc/ld.so.conf" "$libdir/"
-# done
-
-ldconfig -p >&2
-
-# exit 1

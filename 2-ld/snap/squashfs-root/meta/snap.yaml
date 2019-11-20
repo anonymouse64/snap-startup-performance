@@ -16,9 +16,13 @@ layout:
     bind-file: $SNAP_DATA/etc/ld.so.cache
 hooks:
   install:
+    plugs:
+      - opengl
     command-chain:
       - snap/command-chain/snapcraft-runner
       - bin/desktop-launch
+    environment:
+      LD_LIBRARY_PATH: $SNAP/usr/lib/chromium-browser
 plugs:
   browser-sandbox:
     allow-sandbox: true
@@ -69,9 +73,9 @@ apps:
   chromium:
     command: bin/chromium.launcher
     command-chain:
-      - bin/time-save.sh
       - snap/command-chain/snapcraft-runner
       - bin/desktop-launch
+      - strip-ld-library-path.sh
     environment:
       CHROME_DESKTOP: chromium.desktop
       DISABLE_WAYLAND: 1
